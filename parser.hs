@@ -1,6 +1,7 @@
 
 import qualified Data.ByteString.Char8 as C8
 import qualified Data.ByteString.Lazy as BL
+import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy.Char8 as CL
 import Data.Word
 import Data.Int
@@ -17,10 +18,6 @@ import System.Environment
 import Data.Binary.Get
 
 
-rev_chunk :: Int
-rev_chunk = 50
-
-
 date_format :: String
 date_format = "%F %H:%M:%S"
 
@@ -31,6 +28,10 @@ quote_label = "B6034"
 
 msg_offset :: Int64
 msg_offset = 42
+
+
+sec_threshold :: Int
+sec_threshold = 3
 
 
 formatPTime :: Clock.UTCTime -> String
@@ -119,7 +120,9 @@ data Message = Message {
   aprice5 :: String,
   aqty5 :: String,
 
-  accept_time :: String
+  accept_time :: String,
+
+  period :: Int
 
   } | NoMessage deriving Show
 
@@ -175,6 +178,15 @@ getMessage bytes
 
       accept_time <- getByteString 8
 
+      let (hh, rest1) = B.splitAt 2 accept_time
+          (mm, rest2) = B.splitAt 2 rest1
+          (ss, _) = B.splitAt 2 rest2
+          hh_int = read (C8.unpack hh) :: Int
+          mm_int = read (C8.unpack mm) :: Int
+          ss_int = read (C8.unpack ss) :: Int
+          seconds = hh_int * 3600 + mm_int * 60 + ss_int
+          period = mod seconds sec_threshold
+
       return Message {
         quote = C8.unpack quote,
         issue_code = C8.unpack issue_code,
@@ -209,7 +221,9 @@ getMessage bytes
         aprice5 = C8.unpack aprice5,
         aqty5 = C8.unpack aqty5,
 
-        accept_time = C8.unpack accept_time
+        accept_time = C8.unpack accept_time,
+
+        period = period
         }
 
 
@@ -307,10 +321,23 @@ flattern :: [[a]] -> [a]
 flattern xss = foldr (++) [] xss
 
 
+grouper :: Packet -> Packet -> Bool
+grouper packet1 packet2 = period1 == period2
+  where
+    Packet{message=message1} = packet1
+    Packet{message=message2} = packet2
+    period1 = case message1 of
+      Message{period=period1} -> period1
+      NoMessage -> 0
+    period2 = case message2 of
+      Message{period=period2} -> period2
+      NoMessage -> 0
+
+
 revPackets :: [Packet] -> [Packet]
 revPackets packets = flattern chunks_sorted
   where
-    chunks = chunksOf rev_chunk packets
+    chunks = groupBy grouper packets
     chunks_sorted = [sortOn sorter chunk | chunk <- chunks]
 
 
