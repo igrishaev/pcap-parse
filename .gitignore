@@ -1,1 +1,4 @@
 *.pcap
+parser
+*.o
+*.hi

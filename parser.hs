@@ -114,7 +114,13 @@ getMessage bytes = runGet parse bytes
   where
     parse :: Get Message
     parse = do
-      quote <- getByteString 5
+      -- quote <- getByteString 5
+
+      data_type <- getByteString 2
+      info_type <- getByteString 2
+
+      skip 1 -- Market Type
+
       issue_code <- getByteString 12
 
       skip 3 -- Issue seq.-no.
@@ -153,14 +159,14 @@ getMessage bytes = runGet parse bytes
       aprice5 <- getByteString 5
       aqty5 <- getByteString 7
 
-      skip 50 -- No. fields in total
-
-      accept_time <- getByteString 8
+      -- skip 50 -- No. fields in total
+      -- accept_time <- getByteString 8
 
       return Message {
-        quote = C8.unpack qui
+        -- quote = C8.unpack qui
         data_type = C8.unpack data_type,
         info_type = C8.unpack info_type,
+
         issue_code = C8.unpack issue_code,
 
         bprice1 = C8.unpack bprice1,
@@ -193,8 +199,7 @@ getMessage bytes = runGet parse bytes
         aprice5 = C8.unpack aprice5,
         aqty5 = C8.unpack aqty5,
 
-        accept_time = C8.unpack accept_time
-
+        accept_time = "test" -- C8.unpack accept_time
         }
 
 
@@ -270,8 +275,8 @@ formatPacket packet = printf "%s %s %s %s@%s %s@%s %s@%s %s@%s %s@%s %s@%s %s@%s
       } = message
 
 
-packetPredicate :: Packet -> Bool
-packetPredicate packet = data_type == "B6" & info_type == ""
+-- packetPredicate :: Packet -> Bool
+-- packetPredicate packet = data_type == "B6" & info_type == ""
 
 
 main :: IO ()
@@ -280,7 +285,8 @@ main = withFile "mdf-kospi200.20110216-0.pcap" ReadMode $ \h -> do
   let (head, tail) = BL.splitAt 24 content
   let header = getGHeader head
   let packets = getPackets tail
-
+  -- print packets
+  -- print (fst packets)
   -- print packets
   mapM_ (print. formatPacket) packets
   -- putStr ( unlines packets )
