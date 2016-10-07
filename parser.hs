@@ -46,9 +46,10 @@ data PHeader = PHeader {
   } deriving Show
 
 
-getPHeader :: BL.ByteString -> PHeader
-getPHeader input = runGet parse input
+getPHeader :: BL.ByteString -> (PHeader, BL.ByteString)
+getPHeader bytes = (runGet parse head, rest)
   where
+    (head, rest) = BL.splitAt 16 bytes
     parse :: Get PHeader
     parse = do
       ts_sec <- getWord32le
@@ -224,9 +225,10 @@ getGHeader bytes = (runGet parse head, rest)
 getPacket :: BL.ByteString -> (Packet, BL.ByteString)
 getPacket bytes = (Packet header message, return_bytes)
   where
-    (header_bytes, rest_bytes) = BL.splitAt 16 bytes
-    header@PHeader{incl_len = incl_len} = getPHeader header_bytes
-    (body_bytes, return_bytes) = BL.splitAt (fromIntegral incl_len) rest_bytes
+    (header, rest_bytes) = getPHeader bytes
+    PHeader{incl_len = incl_len} = header
+    offset = fromIntegral incl_len
+    (body_bytes, return_bytes) = BL.splitAt offset rest_bytes
     (_, message_bytes) = BL.splitAt msg_offset body_bytes
     message = getMessage message_bytes
 
