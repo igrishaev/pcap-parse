@@ -1,7 +1,7 @@
 
-import qualified Data.ByteString.Char8 as C8
-import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as C
+import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Lazy.Char8 as CL
 import Data.Word
 import Data.Int
@@ -188,47 +188,47 @@ getMessage bytes
       let (hh, rest1) = B.splitAt 2 accept_time
           (mm, rest2) = B.splitAt 2 rest1
           (ss, _) = B.splitAt 2 rest2
-          hh_int = read (C8.unpack hh) :: Int
-          mm_int = read (C8.unpack mm) :: Int
-          ss_int = read (C8.unpack ss) :: Int
+          hh_int = read (C.unpack hh) :: Int
+          mm_int = read (C.unpack mm) :: Int
+          ss_int = read (C.unpack ss) :: Int
           seconds = hh_int * 3600 + mm_int * 60 + ss_int
           period = mod seconds sec_threshold
 
       return Message {
-        quote = C8.unpack quote,
-        issue_code = C8.unpack issue_code,
+        quote = C.unpack quote,
+        issue_code = C.unpack issue_code,
 
-        bprice1 = C8.unpack bprice1,
-        bqty1 = C8.unpack bqty1,
+        bprice1 = C.unpack bprice1,
+        bqty1 = C.unpack bqty1,
 
-        bprice2 = C8.unpack bprice2,
-        bqty2 = C8.unpack bqty2,
+        bprice2 = C.unpack bprice2,
+        bqty2 = C.unpack bqty2,
 
-        bprice3 = C8.unpack bprice3,
-        bqty3 = C8.unpack bqty3,
+        bprice3 = C.unpack bprice3,
+        bqty3 = C.unpack bqty3,
 
-        bprice4 = C8.unpack bprice4,
-        bqty4 = C8.unpack bqty4,
+        bprice4 = C.unpack bprice4,
+        bqty4 = C.unpack bqty4,
 
-        bprice5 = C8.unpack bprice5,
-        bqty5 = C8.unpack bqty5,
+        bprice5 = C.unpack bprice5,
+        bqty5 = C.unpack bqty5,
 
-        aprice1 = C8.unpack aprice1,
-        aqty1 = C8.unpack aqty1,
+        aprice1 = C.unpack aprice1,
+        aqty1 = C.unpack aqty1,
 
-        aprice2 = C8.unpack aprice2,
-        aqty2 = C8.unpack aqty2,
+        aprice2 = C.unpack aprice2,
+        aqty2 = C.unpack aqty2,
 
-        aprice3 = C8.unpack aprice3,
-        aqty3 = C8.unpack aqty3,
+        aprice3 = C.unpack aprice3,
+        aqty3 = C.unpack aqty3,
 
-        aprice4 = C8.unpack aprice4,
-        aqty4 = C8.unpack aqty4,
+        aprice4 = C.unpack aprice4,
+        aqty4 = C.unpack aqty4,
 
-        aprice5 = C8.unpack aprice5,
-        aqty5 = C8.unpack aqty5,
+        aprice5 = C.unpack aprice5,
+        aqty5 = C.unpack aqty5,
 
-        accept_time = C8.unpack accept_time,
+        accept_time = C.unpack accept_time,
 
         period = period
         }
