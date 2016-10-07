@@ -2,7 +2,6 @@
 import qualified Data.ByteString.Char8 as C8
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Lazy.Char8 as CL
-import Data.Binary.Get
 import Data.Word
 import Data.Int
 import System.IO
@@ -11,9 +10,17 @@ import qualified Data.List as L
 import qualified Data.Time.Clock.POSIX as Posix
 import qualified Data.Time.Format as Format
 import qualified Data.Time.Clock as Clock
+import System.Environment
 
--- unpack :: BL.ByteString -> String
--- unpack bytes =
+import Data.Binary.Get
+
+
+quote_label :: String
+quote_label = "B6034"
+
+
+msg_offset :: Int64
+msg_offset = 42
 
 
 formatPTime :: Clock.UTCTime -> String
@@ -105,19 +112,11 @@ data Message = Message {
 
   } | NoMessage deriving Show
 
--- B6034
-
-isUDP :: BL.ByteString -> Bool
-isUDP bytes = udpByte == (0x11 :: Word8)
-  where udpByte = BL.index bytes 23
-
--- unpack
-
 
 getMessage :: BL.ByteString -> Message
 getMessage bytes
   | BL.length bytes < 5 = NoMessage
-  | CL.unpack (BL.take 5 bytes) /= "B6034" = NoMessage
+  | CL.unpack (BL.take 5 bytes) /= quote_label = NoMessage
   | otherwise = runGet parse bytes
   where
     parse :: Get Message
@@ -161,8 +160,9 @@ getMessage bytes
       aprice5 <- getByteString 5
       aqty5 <- getByteString 7
 
-      -- skip 50 -- No. fields in total
-      -- accept_time <- getByteString 8
+      skip 50 -- No. fields in total
+
+      accept_time <- getByteString 8
 
       return Message {
         quote = C8.unpack quote,
@@ -198,15 +198,16 @@ getMessage bytes
         aprice5 = C8.unpack aprice5,
         aqty5 = C8.unpack aqty5,
 
-        accept_time = "test" -- C8.unpack accept_time
+        accept_time = C8.unpack accept_time
         }
 
 
-getGHeader :: BL.ByteString -> GHeader
-getGHeader input = runGet parse input
+getGHeader :: BL.ByteString -> (GHeader, BL.ByteString)
+getGHeader bytes = (runGet parse head, rest)
   where
     parse :: Get GHeader
-    parse = GHeader <$> getWord32le <*> getWord16le <*> getWord16le <*> getInt32le <*>  getWord32le <*> getWord32le <*> getWord32le
+    parse = GHeader <$> getWord32le <*> getWord16le <*> getWord16le <*> getInt32le <*>  getWord32le <*> getWord32le <*> getWord32le -- todo
+    (head, rest) = BL.splitAt 24 bytes
 
 
 getPacket :: BL.ByteString -> (Packet, BL.ByteString)
@@ -215,10 +216,8 @@ getPacket bytes = (Packet header message, return_bytes)
     (header_bytes, rest_bytes) = BL.splitAt 16 bytes
     header@PHeader{incl_len = incl_len} = getPHeader header_bytes
     (body_bytes, return_bytes) = BL.splitAt (fromIntegral incl_len) rest_bytes
-    message = if isUDP body_bytes
-      then let (_, message_bytes) = BL.splitAt 42 body_bytes
-               in getMessage message_bytes
-      else NoMessage
+    (_, message_bytes) = BL.splitAt msg_offset body_bytes
+    message = getMessage message_bytes
 
 
 getPackets :: BL.ByteString -> [Packet]
@@ -231,7 +230,7 @@ getPackets bytes
 
 
 formatPacket :: Packet -> String
-formatPacket packet = printf "%s %s %s %s@%s %s@%s %s@%s %s@%s %s@%s %s@%s %s@%s %s@%s %s@%s %s@%s" pkt_time accept_time issue_code bqty5 bprice5 bqty4 bprice4 bqty3 bprice3 bqty2 bprice2 bqty1 bprice1 aqty1 aprice1 aqty2 aprice2 aqty3 aprice3 aqty4 aprice4 aqty5 aprice5
+formatPacket packet = printf "%s %s %s %s@%s %s@%s %s@%s %s@%s %s@%s %s@%s %s@%s %s@%s %s@%s %s@%s" pkt_time accept_time issue_code bqty5 bprice5 bqty4 bprice4 bqty3 bprice3 bqty2 bprice2 bqty1 bprice1 aqty1 aprice1 aqty2 aprice2 aqty3 aprice3 aqty4 aprice4 aqty5 aprice5 -- todo
   where
     Packet{message = message, header = header} = packet
     PHeader{utc_time = utc_time} = header
@@ -281,8 +280,7 @@ packetPredicate Packet{message=Message{}} = True
 
 main :: IO ()
 main = withFile "mdf-kospi200.20110216-0.pcap" ReadMode $ \h -> do
-  content <- BL.hGetContents h
-  let (head, tail) = BL.splitAt 24 content
-  let header = getGHeader head
-  let packets = getPackets tail
+  bytes <- BL.hGetContents h
+  let (global_header, bytes_rest) = getGHeader bytes
+  let packets = getPackets bytes_rest
   mapM_ (print. formatPacket) (L.filter packetPredicate packets)
