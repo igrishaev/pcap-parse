@@ -2,11 +2,16 @@
 pcap = mdf-kospi200.20110216-0.pcap
 
 
-all: download compile run run-rev
+all: cabal download compile run run-rev
 
 
 compile:
 	ghc parser
+
+
+.PHONY: cabal
+cabal:
+	cabal install binary
 
 
 run: $(pcap)
