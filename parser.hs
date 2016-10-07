@@ -6,6 +6,8 @@ import Data.Word
 import Data.Int
 import System.IO
 import Text.Printf
+import Data.List
+import Data.List.Split
 import qualified Data.List as L
 import qualified Data.Time.Clock.POSIX as Posix
 import qualified Data.Time.Format as Format
@@ -13,6 +15,10 @@ import qualified Data.Time.Clock as Clock
 import System.Environment
 
 import Data.Binary.Get
+
+
+chunk_size :: Int
+chunk_size = 10
 
 
 date_format :: String
@@ -282,14 +288,39 @@ packetPredicate Packet{message=NoMessage} = False
 packetPredicate Packet{message=Message{}} = True
 
 
+sorter :: Packet -> String
+sorter packet = accept_time
+  where
+    Packet{message=message} = packet
+    accept_time = case message of
+      Message{accept_time=accept_time} -> accept_time
+      NoMessage -> ""
+
+
+flattern :: [[a]] -> [a]
+flattern xss = foldr (++) [] xss
+
+
+revPackets :: [Packet] -> [Packet]
+revPackets packets = flattern chunks_sorted
+  where
+    chunks = chunksOf 99 packets
+    chunks_sorted = [sortOn sorter chunk | chunk <- chunks]
+
+
+printPackets = mapM_ (putStrLn . formatPacket)
+
+
 main :: IO ()
 main = do
   args <- getArgs
-  print args
   case args of
     [] -> error "No file name provided!"
-    (filePath:_) -> withFile filePath ReadMode $ \h -> do
+    (filePath:args_rest) -> withFile filePath ReadMode $ \h -> do
       bytes <- BL.hGetContents h
       let (global_header, bytes_rest) = getGHeader bytes
-          packets = getPackets bytes_rest
-      mapM_ (print. formatPacket) (L.filter packetPredicate packets)
+          packets_all = getPackets bytes_rest
+          packets_clear = L.filter packetPredicate packets_all
+      case args_rest of
+        [] -> printPackets packets_clear
+        ("-r":_) -> printPackets $ revPackets packets_clear

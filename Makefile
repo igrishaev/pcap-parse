@@ -6,3 +6,6 @@ compile:
 
 run:
 	./parser $(pcap)
+
+run-rev:
+	./parser $(pcap) -r
