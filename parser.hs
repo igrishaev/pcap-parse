@@ -279,8 +279,13 @@ packetPredicate Packet{message=Message{}} = True
 
 
 main :: IO ()
-main = withFile "mdf-kospi200.20110216-0.pcap" ReadMode $ \h -> do
-  bytes <- BL.hGetContents h
-  let (global_header, bytes_rest) = getGHeader bytes
-  let packets = getPackets bytes_rest
-  mapM_ (print. formatPacket) (L.filter packetPredicate packets)
+main = do
+  args <- getArgs
+  print args
+  case args of
+    [] -> error "No file name provided!"
+    (filePath:_) -> withFile filePath ReadMode $ \h -> do
+      bytes <- BL.hGetContents h
+      let (global_header, bytes_rest) = getGHeader bytes
+          packets = getPackets bytes_rest
+      mapM_ (print. formatPacket) (L.filter packetPredicate packets)
