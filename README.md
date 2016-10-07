@@ -1,6 +1,9 @@
 This program parses trading data placed in special PCAP files. It is written in
 Haskell and depends only on `binary` semi-standard package.
 
+The program uses lazy byte strings to not load entire file in memory. Passing a
+wrong PCAP file (without such UDP packets) returns an empty result.
+
 Installation steps:
 
 1. Clone this repo.
