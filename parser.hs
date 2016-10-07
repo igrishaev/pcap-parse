@@ -17,24 +17,24 @@ import System.Environment
 import Data.Binary.Get
 
 
-chunk_size :: Int
-chunk_size = 10
+revChunk :: Int
+revChunk :: 50
 
 
-date_format :: String
-date_format = "%F %H:%M:%S"
+dateFormat :: String
+dateFormat = "%F %H:%M:%S"
 
 
-quote_label :: String
-quote_label = "B6034"
+quoteLabel :: String
+quoteLabel = "B6034"
 
 
-msg_offset :: Int64
-msg_offset = 42
+msgOffset :: Int64
+msgOffset = 42
 
 
 formatPTime :: Clock.UTCTime -> String
-formatPTime utc_time = Format.formatTime Format.defaultTimeLocale date_format utc_time
+formatPTime utc_time = Format.formatTime Format.defaultTimeLocale dateFormat utc_time
 
 
 data PHeader = PHeader {
@@ -126,7 +126,7 @@ data Message = Message {
 getMessage :: BL.ByteString -> Message
 getMessage bytes
   | BL.length bytes < 5 = NoMessage
-  | CL.unpack (BL.take 5 bytes) /= quote_label = NoMessage
+  | CL.unpack (BL.take 5 bytes) /= quoteLabel = NoMessage
   | otherwise = runGet parse bytes
   where
     parse :: Get Message
@@ -226,7 +226,7 @@ getPacket bytes = (Packet header message, return_bytes)
     (header_bytes, rest_bytes) = BL.splitAt 16 bytes
     header@PHeader{incl_len = incl_len} = getPHeader header_bytes
     (body_bytes, return_bytes) = BL.splitAt (fromIntegral incl_len) rest_bytes
-    (_, message_bytes) = BL.splitAt msg_offset body_bytes
+    (_, message_bytes) = BL.splitAt msgOffset body_bytes
     message = getMessage message_bytes
 
 
@@ -304,7 +304,7 @@ flattern xss = foldr (++) [] xss
 revPackets :: [Packet] -> [Packet]
 revPackets packets = flattern chunks_sorted
   where
-    chunks = chunksOf 99 packets
+    chunks = chunksOf revChunk packets
     chunks_sorted = [sortOn sorter chunk | chunk <- chunks]
 
 
