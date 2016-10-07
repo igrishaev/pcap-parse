@@ -1,7 +1,7 @@
 
-import qualified Data.ByteString.Lazy as BL
--- import qualified Data.ByteString.Lazy.Char8
 import qualified Data.ByteString.Char8 as C8
+import qualified Data.ByteString.Lazy as BL
+import qualified Data.ByteString.Lazy.Char8 as CL
 import Data.Binary.Get
 import Data.Word
 import Data.Int
@@ -11,6 +11,9 @@ import qualified Data.List as L
 import qualified Data.Time.Clock.POSIX as Posix
 import qualified Data.Time.Format as Format
 import qualified Data.Time.Clock as Clock
+
+-- unpack :: BL.ByteString -> String
+-- unpack bytes =
 
 
 formatPTime :: Clock.UTCTime -> String
@@ -65,8 +68,7 @@ data Packet = Packet {
 
 
 data Message = Message {
-  data_type :: String,
-  info_type :: String,
+  quote :: String,
   issue_code :: String,
 
   bprice1 :: String,
@@ -103,24 +105,24 @@ data Message = Message {
 
   } | NoMessage deriving Show
 
+-- B6034
 
 isUDP :: BL.ByteString -> Bool
 isUDP bytes = udpByte == (0x11 :: Word8)
   where udpByte = BL.index bytes 23
 
+-- unpack
+
 
 getMessage :: BL.ByteString -> Message
-getMessage bytes = runGet parse bytes
+getMessage bytes
+  | BL.length bytes < 5 = NoMessage
+  | CL.unpack (BL.take 5 bytes) /= "B6034" = NoMessage
+  | otherwise = runGet parse bytes
   where
     parse :: Get Message
     parse = do
-      -- quote <- getByteString 5
-
-      data_type <- getByteString 2
-      info_type <- getByteString 2
-
-      skip 1 -- Market Type
-
+      quote <- getByteString 5
       issue_code <- getByteString 12
 
       skip 3 -- Issue seq.-no.
@@ -163,10 +165,7 @@ getMessage bytes = runGet parse bytes
       -- accept_time <- getByteString 8
 
       return Message {
-        -- quote = C8.unpack qui
-        data_type = C8.unpack data_type,
-        info_type = C8.unpack info_type,
-
+        quote = C8.unpack quote,
         issue_code = C8.unpack issue_code,
 
         bprice1 = C8.unpack bprice1,
@@ -275,8 +274,9 @@ formatPacket packet = printf "%s %s %s %s@%s %s@%s %s@%s %s@%s %s@%s %s@%s %s@%s
       } = message
 
 
--- packetPredicate :: Packet -> Bool
--- packetPredicate packet = data_type == "B6" & info_type == ""
+packetPredicate :: Packet -> Bool
+packetPredicate Packet{message=NoMessage} = False
+packetPredicate Packet{message=Message{}} = True
 
 
 main :: IO ()
@@ -285,11 +285,4 @@ main = withFile "mdf-kospi200.20110216-0.pcap" ReadMode $ \h -> do
   let (head, tail) = BL.splitAt 24 content
   let header = getGHeader head
   let packets = getPackets tail
-  -- print packets
-  -- print (fst packets)
-  -- print packets
-  mapM_ (print. formatPacket) packets
-  -- putStr ( unlines packets )
-  -- let (packet, bytes) = getPacket tail
-  -- print packet
-  -- print header
+  mapM_ (print. formatPacket) (L.filter packetPredicate packets)
