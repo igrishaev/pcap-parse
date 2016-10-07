@@ -2,7 +2,7 @@
 pcap = mdf-kospi200.20110216-0.pcap
 
 
-all: cabal download compile run run-rev
+all: cabal compile download run
 
 
 compile:
