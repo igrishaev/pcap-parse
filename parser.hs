@@ -216,7 +216,8 @@ getGHeader :: BL.ByteString -> (GHeader, BL.ByteString)
 getGHeader bytes = (runGet parse head, rest)
   where
     parse :: Get GHeader
-    parse = GHeader <$> getWord32le <*> getWord16le <*> getWord16le <*> getInt32le <*>  getWord32le <*> getWord32le <*> getWord32le -- todo
+    parse = GHeader <$> getWord32le <*> getWord16le <*> getWord16le
+            <*> getInt32le <*>  getWord32le <*> getWord32le <*> getWord32le
     (head, rest) = BL.splitAt 24 bytes
 
 
@@ -240,7 +241,10 @@ getPackets bytes
 
 
 formatPacket :: Packet -> String
-formatPacket packet = printf "%s %s %s %s@%s %s@%s %s@%s %s@%s %s@%s %s@%s %s@%s %s@%s %s@%s %s@%s" pkt_time accept_time issue_code bqty5 bprice5 bqty4 bprice4 bqty3 bprice3 bqty2 bprice2 bqty1 bprice1 aqty1 aprice1 aqty2 aprice2 aqty3 aprice3 aqty4 aprice4 aqty5 aprice5 -- todo
+formatPacket packet = printf "%s %s %s %s@%s %s@%s %s@%s %s@%s %s@%s %s@%s %s@%s %s@%s %s@%s %s@%s"
+                      pkt_time accept_time issue_code bqty5 bprice5 bqty4 bprice4 bqty3 bprice3 bqty2
+                      bprice2 bqty1 bprice1 aqty1 aprice1 aqty2 aprice2 aqty3 aprice3 aqty4 aprice4
+                      aqty5 aprice5
   where
     Packet{message = message, header = header} = packet
     PHeader{utc_time = utc_time} = header
