@@ -1,19 +1,18 @@
 
-import qualified Data.ByteString as B
-import qualified Data.ByteString.Char8 as C
-import qualified Data.ByteString.Lazy as BL
-import qualified Data.ByteString.Lazy.Char8 as CL
 import Data.Word
 import Data.Int
 import System.IO
 import Text.Printf
 import Data.List
 import Data.List.Split
-import qualified Data.List as L
+import System.Environment
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as C
+import qualified Data.ByteString.Lazy as BL
+import qualified Data.ByteString.Lazy.Char8 as CL
 import qualified Data.Time.Clock.POSIX as Posix
 import qualified Data.Time.Format as Format
 import qualified Data.Time.Clock as Clock
-import System.Environment
 
 import Data.Binary.Get
 
@@ -365,7 +364,7 @@ main = do
       bytes <- BL.hGetContents h
       let (global_header, bytes_rest) = getGHeader bytes
           packets_all = getPackets bytes_rest
-          packets_clear = L.filter packetPredicate packets_all
+          packets_clear = filter packetPredicate packets_all
       case args_rest of
         [] -> printPackets packets_clear
         ("-r":_) -> printPackets $ reorderPackets packets_clear
