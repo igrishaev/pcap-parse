@@ -26,10 +26,12 @@ quote_label :: String
 quote_label = "B6034"
 
 
+-- the number of bytes to skip to reach the trade message
 msg_offset :: Int64
 msg_offset = 42
 
 
+-- threshold in seconds to sort packets
 sec_threshold :: Int
 sec_threshold = 3
 
@@ -38,6 +40,7 @@ formatPTime :: Clock.UTCTime -> String
 formatPTime utc_time = Format.formatTime Format.defaultTimeLocale date_format utc_time
 
 
+-- packet header
 data PHeader = PHeader {
   ts_sec :: Word32,
   ts_usec :: Word32,
@@ -69,6 +72,7 @@ getPHeader bytes = (runGet parse head, rest)
         }
 
 
+-- global PCAP header
 data GHeader = GHeader {
   magic_number  :: Word32,
   version_major :: Word16,
@@ -86,7 +90,8 @@ data Packet = Packet {
   } deriving Show
 
 
-data Message = Message {
+-- trade message type. Might be empty when parsing was unsuccessful.
+data Message = NoMessage | Message {
   quote :: String,
   issue_code :: String,
 
@@ -122,9 +127,10 @@ data Message = Message {
 
   accept_time :: String,
 
+  -- accepted time reduced to the threshold
   period :: Int
 
-  } | NoMessage deriving Show
+  } deriving Show
 
 
 getMessage :: BL.ByteString -> Message
@@ -178,6 +184,7 @@ getMessage bytes
 
       accept_time <- getByteString 8
 
+      -- calculate period to group packets when -r is passed
       let (hh, rest1) = B.splitAt 2 accept_time
           (mm, rest2) = B.splitAt 2 rest1
           (ss, _) = B.splitAt 2 rest2
@@ -243,10 +250,12 @@ getPacket bytes = (Packet header message, return_bytes)
     PHeader{incl_len = incl_len} = header
     offset = fromIntegral incl_len
     (body_bytes, return_bytes) = BL.splitAt offset rest_bytes
+    -- todo: should be done more accurate
     (_, message_bytes) = BL.splitAt msg_offset body_bytes
     message = getMessage message_bytes
 
 
+-- turns lazy bytestring into a list if packets
 getPackets :: BL.ByteString -> [Packet]
 getPackets bytes
   | BL.null bytes = []
@@ -308,6 +317,7 @@ packetPredicate Packet{message=NoMessage} = False
 packetPredicate Packet{message=Message{}} = True
 
 
+-- sorts packets by accept time
 sorter :: Packet -> String
 sorter packet = accept_time
   where
@@ -321,6 +331,7 @@ flattern :: [[a]] -> [a]
 flattern xss = foldr (++) [] xss
 
 
+-- groups packets by period
 grouper :: Packet -> Packet -> Bool
 grouper packet1 packet2 = period1 == period2
   where
@@ -334,6 +345,7 @@ grouper packet1 packet2 = period1 == period2
       NoMessage -> 0
 
 
+-- changes packets order when -r is passed
 reorderPackets :: [Packet] -> [Packet]
 reorderPackets packets = flattern chunks_sorted
   where
