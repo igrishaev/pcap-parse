@@ -15,6 +15,10 @@ import System.Environment
 import Data.Binary.Get
 
 
+date_format :: String
+date_format = "%F %H:%M:%S"
+
+
 quote_label :: String
 quote_label = "B6034"
 
@@ -24,7 +28,7 @@ msg_offset = 42
 
 
 formatPTime :: Clock.UTCTime -> String
-formatPTime utc_time = Format.formatTime Format.defaultTimeLocale "%F %D" utc_time
+formatPTime utc_time = Format.formatTime Format.defaultTimeLocale date_format utc_time
 
 
 data PHeader = PHeader {
