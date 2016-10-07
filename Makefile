@@ -18,13 +18,18 @@ run: $(pcap)
 	./parser $(pcap)
 
 
-run-rev: $(pcap)
+run-r: $(pcap)
 	./parser $(pcap) -r
 
 
 download:
 	wget "http://www.tsurucapital.com/file/$(pcap).gz"
 	gunzip $(pcap).gz
+
+
+dump: $(pcap)
+	./parser $(pcap)> output.txt
+	./parser $(pcap) -r > output-r.txt
 
 
 .PHONY: clean
