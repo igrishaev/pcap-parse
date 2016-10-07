@@ -334,8 +334,8 @@ grouper packet1 packet2 = period1 == period2
       NoMessage -> 0
 
 
-revPackets :: [Packet] -> [Packet]
-revPackets packets = flattern chunks_sorted
+reorderPackets :: [Packet] -> [Packet]
+reorderPackets packets = flattern chunks_sorted
   where
     chunks = groupBy grouper packets
     chunks_sorted = [sortOn sorter chunk | chunk <- chunks]
@@ -356,4 +356,4 @@ main = do
           packets_clear = L.filter packetPredicate packets_all
       case args_rest of
         [] -> printPackets packets_clear
-        ("-r":_) -> printPackets $ revPackets packets_clear
+        ("-r":_) -> printPackets $ reorderPackets packets_clear
